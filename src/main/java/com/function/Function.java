@@ -20,6 +20,35 @@ import java.util.Optional;
  * Azure Functions with HTTP Trigger.
  */
 public class Function {
+    
+    static SQLServerDataSource ds = new SQLServerDataSource();
+    static boolean tokenAttained = false;
+    static AccessToken token;
+    static boolean dsSet = false;
+
+    // system-assigned identity
+    
+
+    public void attainToken()
+    {
+        DefaultAzureCredential creds = new DefaultAzureCredentialBuilder().build();
+        // Get the token  
+        TokenRequestContext request = new TokenRequestContext();
+        request.addScopes("https://database.windows.net//.default");
+        token=creds.getToken(request).block();
+
+        if (!dsSet)
+        {
+            // Set token in your SQL connection
+            ds.setServerName("aaasqlmanid56server.database.windows.net");
+            ds.setDatabaseName("aaasqlmanid56db");
+            dsSet = true;
+        }
+
+        creds = null;
+        ds.setAccessToken(token.getToken());
+    }
+    
     /**
      * This function listens at endpoint "/api/HttpExample". Two ways to invoke it using "curl" command in bash:
      * 1. curl -d "HTTP Body" {your host}/api/HttpExample
@@ -35,23 +64,24 @@ public class Function {
             final ExecutionContext context) {
         context.getLogger().info("Java HTTP trigger processed a request.");
 
+        if (token != null )
+        {
+            tokenAttained = true;
+
+            if (token.isExpired() == true)
+            {
+                tokenAttained = false;
+            }
+        }
+
         //========================
         //========================
 
-        // Uncomment one of the two lines depending on the identity type
-        DefaultAzureCredential creds = new DefaultAzureCredentialBuilder().build(); // system-assigned identity
-        //DefaultAzureCredential creds = new DefaultAzureCredentialBuilder().managedIdentityClientId('<client-id-of-user-assigned-identity>")'build(); // user-assigned identity
-
-        // Get the token  
-        TokenRequestContext request = new TokenRequestContext();
-        request.addScopes("https://database.windows.net//.default");
-        AccessToken token=creds.getToken(request).block();
-
-        // Set token in your SQL connection
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setServerName("aaasqlmanid56server.database.windows.net");
-        ds.setDatabaseName("aaasqlmanid56db");
-        ds.setAccessToken(token.getToken());
+        if (!tokenAttained)
+        {
+            attainToken();
+            tokenAttained = true;
+        }
 
         // Connect
         try {

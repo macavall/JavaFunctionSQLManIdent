@@ -40,8 +40,8 @@ public class Function {
         if (!dsSet)
         {
             // Set token in your SQL connection
-            ds.setServerName("aaasqlmanid56server.database.windows.net");
-            ds.setDatabaseName("aaasqlmanid56db");
+            ds.setServerName("aaamanid564sqlserver.database.windows.net");
+            ds.setDatabaseName("aaamanid564sqldb");
             dsSet = true;
         }
 
